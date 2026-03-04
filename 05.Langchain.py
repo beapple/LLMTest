@@ -1,17 +1,11 @@
-from langchain_openai import AzureChatOpenAI 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage 
-import os
+from langchain_openai import AzureChatOpenAI  
 from dotenv import load_dotenv
-import tiktoken tokenizer = tiktoken.get_encoding('cl100k_base')  
+import os
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-# .env 파일에서 환경변수 로드
 load_dotenv()
 
-from langchain_community.document_loaders import PyPDFLoader
-
-# 환경변수에서 설정 가져오기 (기본값 제공)
-MODEL_DEPLOYMENT_NAME = os.getenv('MODEL_DEPLOYMENT_NAME', 'gpt-4.1')
-
+MODEL_DEPLOYMENT_NAME = "gpt-4.1" # 실제 Azure 배포명을 입력하세요
 
 llm = AzureChatOpenAI(
         deployment_name=MODEL_DEPLOYMENT_NAME,                        
@@ -23,15 +17,31 @@ messages = [
          HumanMessage(content='신입사원 교육을 해야됩니다.') 
 ]  
 
+# answer = llm.invoke(messages) 
+#print(answer.content)
+
+from langchain_community.document_loaders import PyPDFLoader
 
 loader = PyPDFLoader('/workspaces/LLMTest/Owners_Manual.pdf') 
 pages = loader.load_and_split()
 
+# print(len(pages))
+# print(pages[0].page_content)
 
-
+import tiktoken 
+tokenizer = tiktoken.get_encoding('cl100k_base')  
 def tiktoken_len(text):
-    tokens = tokenizer.encode(text)   
+    tokens = tokenizer.encode(text)  
     return len(tokens)
 
-# answer = llm.invoke(messages) 
-# print(answer.content)
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+text_splitter = RecursiveCharacterTextSplitter(     
+    chunk_size=1000, 
+    chunk_overlap=100, 
+    length_function=tiktoken_len 
+) 
+
+texts = text_splitter.split_documents(pages)
+
+print("pages: ", len(pages))
+print("texts: ", len(texts))
